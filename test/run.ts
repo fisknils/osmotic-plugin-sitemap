@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Osmotic } from 'osmotic';
 import sitemap = require('../src/index.cjs');
-import { blog, openSite, rows, scrape, tempDir, warnings } from './helpers/index.js';
+import { assertValid, blog, openSite, scrape, tempDir } from './helpers/index.js';
 
 before(() => Osmotic.plugins([sitemap]));
 
@@ -28,20 +28,11 @@ test('each run starts the file over', async (t) => {
 			`\t<url>\n\t\t<loc>${o}/inl%C3%A4gg/gl%C3%B6gg%20recept</loc>\n\t</url>\n` +
 			'</urlset>\n',
 	);
+	await assertValid(file);
 });
 
 test('a file that cannot be opened fails the run instead of crashing', async (t) => {
 	const site = await openSite(t, blog);
 	const file = join(tempDir(t), 'missing-dir', 'sitemap.xml');
 	await assert.rejects(scrape(posts(site.url(), file)), /ENOENT/);
-});
-
-test('passing the protocol limit of 50,000 URLs warns once', async (t) => {
-	const file = join(tempDir(t), 'sitemap.xml');
-	const warned = warnings(t);
-	const many = Array.from({ length: 50_002 }, (_, i) => ({ loc: `https://example.com/${i}` }));
-	await scrape(rows(many).export('sitemap', file));
-	assert.equal(readFileSync(file, 'utf8').match(/<url>/g)?.length, 50_002, 'every URL is still written');
-	assert.equal(warned.length, 1);
-	assert.match(warned[0], /50,000/);
 });

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { Osmotic } from 'osmotic';
 import sitemap = require('../src/index.cjs');
-import { blog, entries, openSite, rows, scrape, tempDir } from './helpers/index.js';
+import { assertValid, blog, entries, openSite, rows, scrape, tempDir } from './helpers/index.js';
 
 before(() =>
 	Osmotic.plugins([
@@ -33,6 +33,7 @@ test('fields reads the sitemap fields from other data keys', async (t) => {
 		{ loc: `${o}/posts/what&apos;s-new` },
 		{ loc: `${o}/inl%C3%A4gg/gl%C3%B6gg%20recept`, lastmod: '2025-12-24' },
 	]);
+	await assertValid(file);
 });
 
 test('changefreq and priority fill in entries without one; the row value wins', async (t) => {
@@ -50,6 +51,7 @@ test('changefreq and priority fill in entries without one; the row value wins', 
 		// An invalid or empty row value falls back to the default, like a missing one
 		{ loc: 'https://example.com/c', changefreq: 'monthly', priority: '0.2' },
 	]);
+	await assertValid(file);
 });
 
 test('plugin options are the defaults of their type, and export options override them', async (t) => {
@@ -73,18 +75,34 @@ test('plugin options are the defaults of their type, and export options override
 	assert.deepEqual(entries(join(dir, 'plain.xml')), [{ loc: 'https://example.com/ignored' }]);
 });
 
+// Each is invalid on its own; the casts get them past the type checker
+type SitemapOptions = sitemap.SitemapOptions;
+const invalid: SitemapOptions[] = [
+	{ changefreq: 'often' as 'daily' },
+	{ priority: 2 },
+	{ priority: '0.5' as unknown as number },
+	{ fields: { loc: 1 as unknown as string } },
+	{ fields: { title: 'name' } as unknown as SitemapOptions['fields'] },
+	{ maxUrls: 0 },
+	{ maxUrls: 50_001 },
+	{ maxUrls: 1.5 },
+	{ maxBytes: 0 },
+	{ maxBytes: 52_428_801 },
+	{ url: '/sitemap.xml' },
+	{ url: 'ftp://example.com/sitemap.xml' },
+];
+
 test('invalid plugin options throw a TypeError when the plugin is created', () => {
-	assert.throws(() => sitemap({ changefreq: 'often' as 'daily' }), TypeError);
-	assert.throws(() => sitemap({ priority: 2 }), TypeError);
-	assert.throws(() => sitemap({ fields: { loc: 1 as unknown as string } }), TypeError);
+	for (const options of invalid) assert.throws(() => sitemap(options), TypeError, JSON.stringify(options));
 });
 
 test('invalid export options fail the run with a TypeError', async (t) => {
 	const file = join(tempDir(t), 'sitemap.xml');
-	const chain = rows([{ loc: 'https://example.com/a' }]);
-	await assert.rejects(scrape(chain.export('sitemap', file, { priority: -1 })), TypeError);
-	await assert.rejects(
-		scrape(rows([{ loc: 'https://example.com/a' }]).export('sitemap', file, { changefreq: 'often' as 'daily' })),
-		TypeError,
-	);
+	for (const options of invalid) {
+		await assert.rejects(
+			scrape(rows([{ loc: 'https://example.com/a' }]).export('sitemap', file, options)),
+			TypeError,
+			JSON.stringify(options),
+		);
+	}
 });

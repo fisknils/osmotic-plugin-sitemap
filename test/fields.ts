@@ -1,15 +1,17 @@
 import { before, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Osmotic } from 'osmotic';
 import sitemap = require('../src/index.cjs');
-import { blog, entries, locs, openSite, rows, scrape, tempDir, warnings } from './helpers/index.js';
+import { assertValid, blog, entries, locs, openSite, rows, scrape, tempDir, warnings } from './helpers/index.js';
 
 before(() => Osmotic.plugins([sitemap]));
 
-test('rows without an absolute http(s) loc are skipped, with one warning', async (t) => {
+test('rows without an absolute http(s) loc of 12 to 2,048 characters are skipped, with one warning', async (t) => {
 	const file = join(tempDir(t), 'sitemap.xml');
 	const warned = warnings(t);
+	const longest = 'https://example.com/' + 'a'.repeat(2048 - 'https://example.com/'.length);
 	await scrape(
 		rows([
 			{ loc: '/relative' },
@@ -17,13 +19,25 @@ test('rows without an absolute http(s) loc are skipped, with one warning', async
 			{ title: 'no loc' },
 			{ loc: 'not a url' },
 			{ loc: ['https://example.com/in-a-list'] },
+			{ loc: 'http://a.b' }, // http://a.b/ after normalizing: 11 characters
+			{ loc: longest + 'a' },
+			{ loc: 'http://ab.c' },
+			{ loc: longest },
 			{ loc: 'https://example.com/ok' },
 		]).export('sitemap', file),
 	);
-	assert.deepEqual(entries(file), [{ loc: 'https://example.com/ok' }]);
+	assert.deepEqual(entries(file), [{ loc: 'http://ab.c/' }, { loc: longest }, { loc: 'https://example.com/ok' }]);
 	assert.equal(warned.length, 1);
 	assert.match(warned[0], /sitemap\.xml/);
 	assert.match(warned[0], /\bloc\b/);
+	await assertValid(file);
+});
+
+test('a run without a valid URL writes no file', async (t) => {
+	const file = join(tempDir(t), 'sitemap.xml');
+	warnings(t);
+	await scrape(rows([{ loc: '/relative' }, { title: 'no loc' }]).export('sitemap', file));
+	assert.equal(existsSync(file), false);
 });
 
 test('a loc that was already written is skipped without a warning', async (t) => {
@@ -61,19 +75,23 @@ test('a crawl reaching pages under several URLs lists each canonical URL once', 
 		].sort(),
 	);
 	assert.deepEqual(warned, []);
+	await assertValid(file);
 });
 
-test('lastmod takes a Date or a W3C Datetime string; anything else is left out, with one warning', async (t) => {
+test('lastmod takes a Date, a date, or a date and time with a time zone; anything else is left out, with one warning', async (t) => {
 	const file = join(tempDir(t), 'sitemap.xml');
 	const warned = warnings(t);
 	const at = (path: string, lastmod: unknown) => ({ loc: `https://example.com/${path}`, lastmod });
 	await scrape(
 		rows([
 			at('date', new Date(Date.UTC(2026, 9, 21, 12, 0, 0))),
-			at('year', '2026'),
-			at('month', ' 2026-10 '),
+			at('day', ' 2026-10-21 '),
 			at('minutes', '2026-10-21T14:05+02:00'),
+			at('seconds', '2026-10-21T14:05:30-05:00'),
 			at('fraction', '2026-10-21T12:00:00.25Z'),
+			// W3C Datetime, but not a date or dateTime in the official schema
+			at('year', '2026'),
+			at('month', '2026-10'),
 			at('words', 'yesterday'),
 			at('no-zone', '2026-10-21T12:00:00'),
 			at('month-13', '2026-13-01'),
@@ -85,10 +103,12 @@ test('lastmod takes a Date or a W3C Datetime string; anything else is left out, 
 		entries(file).map((e) => e.lastmod),
 		[
 			'2026-10-21T12:00:00.000Z',
-			'2026',
-			'2026-10',
-			'2026-10-21T14:05+02:00',
+			'2026-10-21',
+			'2026-10-21T14:05:00+02:00',
+			'2026-10-21T14:05:30-05:00',
 			'2026-10-21T12:00:00.25Z',
+			undefined,
+			undefined,
 			undefined,
 			undefined,
 			undefined,
@@ -98,6 +118,7 @@ test('lastmod takes a Date or a W3C Datetime string; anything else is left out, 
 	);
 	assert.equal(warned.length, 1);
 	assert.match(warned[0], /lastmod/);
+	await assertValid(file);
 });
 
 test('changefreq is lowercased and trimmed; other values are left out, with one warning', async (t) => {
@@ -119,6 +140,7 @@ test('changefreq is lowercased and trimmed; other values are left out, with one 
 	);
 	assert.equal(warned.length, 1);
 	assert.match(warned[0], /changefreq/);
+	await assertValid(file);
 });
 
 test('priority takes a number from 0 to 1, or a string of one; other values are left out, with one warning', async (t) => {
@@ -143,4 +165,5 @@ test('priority takes a number from 0 to 1, or a string of one; other values are 
 	);
 	assert.equal(warned.length, 1);
 	assert.match(warned[0], /priority/);
+	await assertValid(file);
 });

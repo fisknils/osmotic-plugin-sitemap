@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Osmotic } from 'osmotic';
 import sitemap = require('../src/index.cjs');
-import { openSite, scrape, tempDir } from './helpers/index.js';
+import { assertValid, openSite, scrape, tempDir } from './helpers/index.js';
 
 before(() => Osmotic.plugins([sitemap]));
 
@@ -22,6 +22,7 @@ test('ampersands and apostrophes, which URLs keep, are written as entities', asy
 		// The query of an http(s) URL percent-encodes the apostrophe; the path keeps it
 		`\t\t<loc>${site.origin}/it&apos;s?q=it%27s&amp;r=2</loc>`,
 	]);
+	await assertValid(file);
 });
 
 test('characters URLs cannot hold are percent-encoded, hosts punycoded and fragments dropped', async (t) => {
@@ -34,4 +35,5 @@ test('characters URLs cannot hold are percent-encoded, hosts punycoded and fragm
 		'\t\t<loc>http://xn--bcher-kva.example/a%20%3Cb%3E%22c%22</loc>',
 		'\t\t<loc>https://example.com/s%C3%B6k?q=%C3%A5</loc>',
 	]);
+	await assertValid(file);
 });

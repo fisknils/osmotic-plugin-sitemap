@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Osmotic } from 'osmotic';
 import sitemap = require('../src/index.cjs');
-import { blog, openSite, scrape, tempDir, warnings } from './helpers/index.js';
+import { assertValid, blog, openSite, scrape, tempDir, warnings } from './helpers/index.js';
 
 before(() => Osmotic.plugins([sitemap]));
 
@@ -46,6 +46,7 @@ test('writes a urlset with one url per row, its fields in protocol order, tab-in
 			'</urlset>\n',
 	);
 	assert.deepEqual(warned, [], 'missing optional fields are left out without a warning');
+	await assertValid(file);
 });
 
 test('optional fields that are null or empty are left out without a warning', async (t) => {
@@ -68,4 +69,5 @@ test('optional fields that are null or empty are left out without a warning', as
 			'</urlset>\n',
 	);
 	assert.deepEqual(warned, []);
+	await assertValid(file);
 });
