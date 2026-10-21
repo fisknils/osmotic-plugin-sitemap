@@ -20,6 +20,7 @@ namespace sitemap {
 	export type SitemapFields = types.SitemapFields;
 	export type SitemapOptions = types.SitemapOptions;
 	export type SitemapPluginOptions = types.SitemapPluginOptions;
+	export type SitemapRule = types.SitemapRule;
 }
 
 // module.exports is the function itself, so require() can pass it straight to plugins()

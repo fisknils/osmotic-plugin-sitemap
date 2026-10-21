@@ -2,4 +2,4 @@
 import sitemap from './index.cjs';
 
 export default sitemap;
-export type { Changefreq, SitemapFields, SitemapOptions, SitemapPluginOptions } from './types/options.js';
+export type { Changefreq, SitemapFields, SitemapOptions, SitemapPluginOptions, SitemapRule } from './types/options.js';

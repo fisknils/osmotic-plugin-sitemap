@@ -29,6 +29,27 @@ export interface SitemapFields {
 	priority?: string;
 }
 
+/**
+ * `changefreq` and `priority` for the URLs a rule matches. For each field, the first
+ * matching rule that sets it applies.
+ *
+ * @example
+ * ```ts
+ * { match: /^\/blog\//, changefreq: 'monthly', priority: 0.6 }
+ * { match: (url) => url.searchParams.has('page'), priority: 0.2 }
+ * ```
+ */
+export interface SitemapRule {
+	/**
+	 * A RegExp tested against the URL's path (percent-encoded, as in the sitemap), or a
+	 * function of the parsed URL.
+	 */
+	match: RegExp | ((url: URL) => boolean);
+	changefreq?: Changefreq;
+	/** From 0 to 1. */
+	priority?: number;
+}
+
 /** How a sitemap is written. */
 export interface SitemapOptions {
 	/**
@@ -36,10 +57,33 @@ export interface SitemapOptions {
 	 * @defaultValue each field's own name: `loc`, `lastmod`, `changefreq` and `priority`
 	 */
 	fields?: SitemapFields;
-	/** `changefreq` for entries without a valid one. @defaultValue none */
+	/** `changefreq` for entries without a valid one or a matching rule. @defaultValue none */
 	changefreq?: Changefreq;
-	/** `priority`, from 0 to 1, for entries without a valid one. @defaultValue none */
+	/** `priority`, from 0 to 1, for entries without a valid one or a matching rule. @defaultValue none */
 	priority?: number;
+	/**
+	 * `changefreq` and `priority` by URL pattern, for entries without a valid one of their
+	 * own. Rules passed to `.export()` are checked before the plugin's.
+	 * @defaultValue none
+	 */
+	rules?: SitemapRule[];
+	/**
+	 * URLs per file. Past it, the URLs are split into numbered parts and the file becomes
+	 * a sitemap index. At most the protocol's limit.
+	 * @defaultValue `50000`
+	 */
+	maxUrls?: number;
+	/**
+	 * Bytes per file, uncompressed. Past it, the URLs are split as for `maxUrls`. At most
+	 * the protocol's limit.
+	 * @defaultValue `52428800` (50 MB)
+	 */
+	maxBytes?: number;
+	/**
+	 * The URL the file will be served at, so a sitemap index can list its parts next to it.
+	 * @defaultValue the file's name at the root of the first URL's host
+	 */
+	url?: string;
 }
 
 /** Options for the plugin. Sitemap options set here are the defaults for every export. */

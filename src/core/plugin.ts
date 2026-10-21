@@ -27,6 +27,8 @@ export function sitemap(options: SitemapPluginOptions = {}): OsmoticPlugin {
 					...defaults,
 					...opts,
 					fields: { ...defaults.fields, ...opts.fields },
+					// The export's own rules are checked first
+					rules: [...(opts.rules ?? []), ...(defaults.rules ?? [])],
 				});
 			},
 		},
