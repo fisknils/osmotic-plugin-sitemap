@@ -7,6 +7,12 @@ Osmotic.plugins([require('../dist/index.cjs')]);
 Osmotic.get('https://example.com')
 	.recurse()
 	.use((ctx, next) => next({ ...ctx, data: { ...ctx.data, loc: ctx.url } }))
-	.export('sitemap', 'sitemap.xml', { changefreq: 'weekly' })
+	.export('sitemap', 'sitemap.xml', {
+		changefreq: 'weekly',
+		rules: [
+			{ match: /^\/$/, changefreq: 'daily', priority: 1 },
+			{ match: /^\/blog\//, changefreq: 'monthly' },
+		],
+	})
 	.config({ maxPages: 20 })
 	.run();

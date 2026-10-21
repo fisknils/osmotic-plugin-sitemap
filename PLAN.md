@@ -117,12 +117,12 @@ Out:
 - [x] Optional fields that are missing, `null` or empty are left out of the entry without a warning. (`test/format.ts`)
 - [x] `&` and `'`, which URLs keep, are written as XML entities; characters URLs can't hold (spaces, `<`, `>`, `"`,
       non-ASCII) are percent-encoded, hosts punycoded, and fragments dropped. (`test/escaping.ts`)
-- [ ] Rows with a missing, relative, malformed, non-http(s), shorter than 12 or longer than 2,048 character `loc` are
+- [x] Rows with a missing, relative, malformed, non-http(s), shorter than 12 or longer than 2,048 character `loc` are
       skipped with one warning per file. (`test/fields.ts`)
-- [ ] A run without a valid URL writes no file. (`test/fields.ts`)
+- [x] A run without a valid URL writes no file. (`test/fields.ts`)
 - [x] A `loc` that was already written, also after normalizing (case of scheme and host, fragment), is skipped without
       a warning; a crawl reaching pages under several URLs lists each canonical URL once. (`test/fields.ts`)
-- [ ] `lastmod` from a `Date` is written as an ISO 8601 timestamp; `YYYY-MM-DD` and date-times with seconds and a time
+- [x] `lastmod` from a `Date` is written as an ISO 8601 timestamp; `YYYY-MM-DD` and date-times with seconds and a time
       zone are trimmed and kept as given; date-times without seconds get `:00`; anything else (a year or month alone,
       free text, times without a time zone, impossible dates, numbers, invalid `Date`s) is left out with one warning.
       (`test/fields.ts`)
@@ -134,29 +134,29 @@ Out:
       (`test/options.ts`)
 - [x] Plugin options are the defaults for every file, export options override them, and a second `type` carries its
       own defaults. (`test/options.ts`)
-- [ ] `rules` set `changefreq` and `priority` for URLs whose path a RegExp matches, or for which a function returns
+- [x] `rules` set `changefreq` and `priority` for URLs whose path a RegExp matches, or for which a function returns
       true; the first matching rule that sets a field wins; a valid row value wins over rules, and rules over the plain
       options. (`test/rules.ts`)
-- [ ] Rules passed to `.export()` are checked before the plugin's. (`test/rules.ts`)
-- [ ] Invalid `changefreq`, `priority`, `fields`, `rules`, `maxUrls`, `maxBytes` or `url` options throw a `TypeError`:
+- [x] Rules passed to `.export()` are checked before the plugin's. (`test/rules.ts`)
+- [x] Invalid `changefreq`, `priority`, `fields`, `rules`, `maxUrls`, `maxBytes` or `url` options throw a `TypeError`:
       from the plugin factory for plugin options, and as a failed run for export options. (`test/options.ts`,
       `test/rules.ts`)
-- [ ] A run within the limits writes a plain sitemap to the file and no part files. (`test/splitting.ts`)
-- [ ] A run past `maxUrls` writes parts of at most `maxUrls` URLs, named `<name>-<n><ext>` next to the file, and an
+- [x] A run within the limits writes a plain sitemap to the file and no part files. (`test/splitting.ts`)
+- [x] A run past `maxUrls` writes parts of at most `maxUrls` URLs, named `<name>-<n><ext>` next to the file, and an
       index at the file listing them in order; each URL is in exactly one part. (`test/splitting.ts`)
-- [ ] A run past `maxBytes` writes parts of at most `maxBytes` bytes; an entry larger than `maxBytes` gets a part of
+- [x] A run past `maxBytes` writes parts of at most `maxBytes` bytes; an entry larger than `maxBytes` gets a part of
       its own. (`test/splitting.ts`)
-- [ ] Without `maxUrls` and `maxBytes`, parts hold at most 50,000 URLs and 52,428,800 bytes. (`test/splitting.ts`)
-- [ ] The index lists parts under `url`, or, without it, under the file's name at the root of the first URL's host.
+- [x] Without `maxUrls` and `maxBytes`, parts hold at most 50,000 URLs and 52,428,800 bytes. (`test/splitting.ts`)
+- [x] The index lists parts under `url`, or, without it, under the file's name at the root of the first URL's host.
       (`test/splitting.ts`)
-- [ ] Each run starts the file over, also when one run splits and the next doesn't. (`test/run.ts`,
+- [x] Each run starts the file over, also when one run splits and the next doesn't. (`test/run.ts`,
       `test/splitting.ts`)
 - [x] A file that can't be opened fails the run instead of crashing. (`test/run.ts`)
-- [ ] Every sitemap and index the tests check is valid against the official `sitemap.xsd` and `siteindex.xsd`.
+- [x] Every sitemap and index the tests check is valid against the official `sitemap.xsd` and `siteindex.xsd`.
       (`assertValid()` in `test/helpers/`, called from every test that checks a written file, except the size tests,
       whose 50 MB parts are only measured)
 - [x] `require()` and `import` of the build share one factory, which `require()` returns itself. (`test/package.ts`)
-- [ ] The `sitemap` export type's options are type-checked for CommonJS and ESM callers. (`test-d/`)
+- [x] The `sitemap` export type's options are type-checked for CommonJS and ESM callers. (`test-d/`)
 
 ## Affected public API
 
@@ -221,6 +221,23 @@ Added:
   `changefreq`.
 
 ## Verification
+
+- Every acceptance criterion is covered by the test named next to it. Both rounds of tests were committed before
+  their code: `d4715e6` for the first version (every test file failed to import the plugin), `e7fdc4e` for
+  splitting, rules and validation (16 of 33 tests failed, and the type check failed on the options that didn't exist
+  yet). `npm test` now passes: 33 tests, plus the type check of `test/` and `test-d/`, on Node.js 24.19.0 locally.
+  Node.js 22 is left to CI.
+- One test failed against the first version of the code: a file in a missing directory didn't fail the run, because
+  `end()` ignored the error its stream passed to the `end` callback. The code was fixed; the test is unchanged. The
+  second round passed on the first run of the new code.
+- Schema validation: before writing any code for it, xmllint-wasm was run against the official schemas with the
+  values the first version wrote. It rejected `2026`, `2026-10` and `2026-10-21T14:05+02:00` as `lastmod`, an 11
+  character `loc`, and an empty `urlset`; that's where the three schema decisions above come from. Every test that
+  checks a written file now also validates it, except the 50 MB test, whose parts are only measured.
+- The test that a part holds at most 50 MB writes about 53 MB to a temporary directory and takes about a second.
+- `npm run format:check` passes.
+- `examples/crawl.js` was run against `https://example.com`: it wrote a one-entry sitemap with the front-page rule's
+  `daily` and `1.0`, which validates against `sitemap.xsd`.
 
 ## Follow-ups
 
