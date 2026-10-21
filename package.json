@@ -1,0 +1,48 @@
+{
+	"name": "osmotic-plugin-sitemap",
+	"version": "1.0.0",
+	"description": "osmotic plugin that exports scraped URLs to an XML sitemap, streamed to disk and validated against the sitemap protocol",
+	"keywords": [
+		"osmotic-plugin",
+		"osmotic",
+		"sitemap",
+		"sitemap.xml",
+		"seo",
+		"export",
+		"scraper"
+	],
+	"license": "ISC",
+	"author": "",
+	"type": "commonjs",
+	"main": "dist/index.cjs",
+	"types": "dist/index.d.cts",
+	"files": [
+		"dist",
+		"examples",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"scripts": {
+		"build": "npm run clean && tsc -p tsconfig.dist.json",
+		"prepublishOnly": "npm run build",
+		"clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+		"test": "npm run build && tsc -p tsconfig.test.json && node --import tsx --test \"test/*.ts\"",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
+	},
+	"peerDependencies": {
+		"osmotic": "^3.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"osmotic": "file:../osmotic",
+		"prettier": "3.3.3",
+		"tsx": "^4.23.15",
+		"typescript": "^7.0.2"
+	}
+}

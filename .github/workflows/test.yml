@@ -1,0 +1,60 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# osmotic is a dev dependency on the checkout next to this one (file:../osmotic), so both
+# repositories are checked out side by side and osmotic is built first
+jobs:
+  test:
+    name: Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The test runner needs Node.js 21 or later for its file glob
+        node-version: [22, 24]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: osmotic-plugin-sitemap
+      - uses: actions/checkout@v6
+        with:
+          repository: fisknils/osmotic
+          ref: master
+          path: osmotic
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: '*/package-lock.json'
+      - run: npm ci && npm run build
+        working-directory: osmotic
+      - run: npm ci
+        working-directory: osmotic-plugin-sitemap
+      - run: npm test
+        working-directory: osmotic-plugin-sitemap
+
+  format:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: osmotic-plugin-sitemap
+      - uses: actions/checkout@v6
+        with:
+          repository: fisknils/osmotic
+          ref: master
+          path: osmotic
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: '*/package-lock.json'
+      - run: npm ci
+        working-directory: osmotic-plugin-sitemap
+      - run: npm run format:check
+        working-directory: osmotic-plugin-sitemap
