@@ -72,34 +72,34 @@ Out:
 
 ## Acceptance criteria
 
-- [ ] `.export('sitemap', file)` writes the XML declaration, a `urlset` with the 0.9 namespace, one `url` per row with
+- [x] `.export('sitemap', file)` writes the XML declaration, a `urlset` with the 0.9 namespace, one `url` per row with
       `loc`, `lastmod`, `changefreq` and `priority` in that order, tab-indented with `\n` line endings. (`test/format.ts`)
-- [ ] Optional fields that are missing, `null` or empty are left out of the entry without a warning. (`test/format.ts`)
-- [ ] `&` and `'`, which URLs keep, are written as XML entities; characters URLs can't hold (spaces, `<`, `>`, `"`,
+- [x] Optional fields that are missing, `null` or empty are left out of the entry without a warning. (`test/format.ts`)
+- [x] `&` and `'`, which URLs keep, are written as XML entities; characters URLs can't hold (spaces, `<`, `>`, `"`,
       non-ASCII) are percent-encoded, hosts punycoded, and fragments dropped. (`test/escaping.ts`)
-- [ ] Rows with a missing, relative, malformed or non-http(s) `loc` are skipped with one warning per file.
+- [x] Rows with a missing, relative, malformed or non-http(s) `loc` are skipped with one warning per file.
       (`test/fields.ts`)
-- [ ] A `loc` that was already written, also after normalizing (case of scheme and host, fragment), is skipped without
+- [x] A `loc` that was already written, also after normalizing (case of scheme and host, fragment), is skipped without
       a warning; a crawl reaching pages under several URLs lists each canonical URL once. (`test/fields.ts`)
-- [ ] `lastmod` from a `Date` is written as an ISO 8601 timestamp; W3C Datetime strings trimmed and as given; anything
+- [x] `lastmod` from a `Date` is written as an ISO 8601 timestamp; W3C Datetime strings trimmed and as given; anything
       else (free text, times without a time zone, impossible dates, numbers, invalid `Date`s) is left out with one
       warning. (`test/fields.ts`)
-- [ ] `changefreq` is lowercased and trimmed; values outside the seven are left out with one warning. (`test/fields.ts`)
-- [ ] `priority` from a number or numeric string from 0 to 1 is written as given, with at least one decimal (`1.0`,
+- [x] `changefreq` is lowercased and trimmed; values outside the seven are left out with one warning. (`test/fields.ts`)
+- [x] `priority` from a number or numeric string from 0 to 1 is written as given, with at least one decimal (`1.0`,
       `0.75`); anything else is left out with one warning. (`test/fields.ts`)
-- [ ] `fields` reads the sitemap fields from other data keys. (`test/options.ts`)
-- [ ] `changefreq` and `priority` options fill in entries without a valid one; a row's own valid value wins.
+- [x] `fields` reads the sitemap fields from other data keys. (`test/options.ts`)
+- [x] `changefreq` and `priority` options fill in entries without a valid one; a row's own valid value wins.
       (`test/options.ts`)
-- [ ] Plugin options are the defaults for every file, export options override them, and a second `type` carries its
+- [x] Plugin options are the defaults for every file, export options override them, and a second `type` carries its
       own defaults. (`test/options.ts`)
-- [ ] Invalid `changefreq` or `priority` options throw a `TypeError`: from the plugin factory for plugin options, and
+- [x] Invalid `changefreq` or `priority` options throw a `TypeError`: from the plugin factory for plugin options, and
       as a failed run for export options. (`test/options.ts`)
-- [ ] Each run starts the file over. (`test/run.ts`)
-- [ ] A file that can't be opened fails the run instead of crashing. (`test/run.ts`)
-- [ ] Passing 50,000 URLs in a file warns once, and every URL is still written. (`test/run.ts`, with the rows coming
+- [x] Each run starts the file over. (`test/run.ts`)
+- [x] A file that can't be opened fails the run instead of crashing. (`test/run.ts`)
+- [x] Passing 50,000 URLs in a file warns once, and every URL is still written. (`test/run.ts`, with the rows coming
       from a `.use()` step: serving 50,001 pages from the test server would be slow for no extra coverage)
-- [ ] `require()` and `import` of the build share one factory, which `require()` returns itself. (`test/package.ts`)
-- [ ] The `sitemap` export type's options are type-checked for CommonJS and ESM callers. (`test-d/`)
+- [x] `require()` and `import` of the build share one factory, which `require()` returns itself. (`test/package.ts`)
+- [x] The `sitemap` export type's options are type-checked for CommonJS and ESM callers. (`test-d/`)
 
 ## Affected public API
 
@@ -136,6 +136,16 @@ Added:
 - Indentation is tabs, matching the repository's `.editorconfig`.
 
 ## Verification
+
+- Every acceptance criterion is covered by the test named next to it. The tests were committed first (`d4715e6`) and
+  failed without `src/` (every test file failed to import the plugin). `npm test` now passes: 20 tests, plus the
+  type check of `test/` and `test-d/`, on Node.js 24.19.0 locally. Node.js 22 is left to CI.
+- One test failed against the first version of the code: a file in a missing directory didn't fail the run, because
+  `end()` ignored the error its stream passed to the `end` callback. The code was fixed; the test is unchanged.
+- `npm run format:check` passes.
+- `examples/crawl.js` was run once against `https://example.com` and wrote a one-entry sitemap.
+- Not checked: validation against the official XSD (`sitemap.xsd`); no XML schema validator is installed. The tests
+  check the output byte for byte against the protocol's format instead.
 
 ## Follow-ups
 
