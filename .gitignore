@@ -1,2 +1,5 @@
 dist
 node_modules
+
+# Per-branch plan. No reason to keep it in git, since it is removed before merging.
+PLAN.md
